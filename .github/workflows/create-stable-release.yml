@@ -27,21 +27,18 @@ jobs:
 
       - name: Set Context Variables
         run: |
-          # 1. Get the App Name (removes first '-' and everything after)
-          echo "APP_NAME=${{ github.ref_name%%-v*}}" >> $GITHUB_ENV
+          REF="${{ github.ref_name }}"
+          
+          # Use cut with '-' as the delimiter (-d) and select the field number (-f)
+          APP_NAME=$(echo "$REF" | cut -d'-' -f1)
+          APP_VERSION=$(echo "$REF" | cut -d'-' -f2)
+          CHART_VERSION=$(echo "$REF" | cut -d'-' -f3)
 
-          # 2. Get the App Version
-          # First, remove the app name prefix
-          TEMP_VERSION=${{ github.ref_name#*-}}
-          # Remove the chart version suffix
-          echo "APP_VERSION=${TEMP_VERSION%%-*}" >> $GITHUB_ENV
-
-          # 3. Get the Chart Version
-          echo "CHART_VERSION=v${{ github.ref_name##*-v}}" >> $GITHUB_ENV
-
-          # 4. Set the Helm Package Path
-          echo "HELM_PACKAGE_PATH=${{ github.workspace }}/charts/${{ github.ref_name%%-v*}}" >> $GITHUB_ENV
-
+          echo "APP_NAME=$APP_NAME" >> $GITHUB_ENV
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
+          echo "CHART_VERSION=$CHART_VERSION" >> $GITHUB_ENV
+          echo "HELM_PACKAGE_PATH=${{ github.workspace }}/charts/$APP_NAME" >> $GITHUB_ENV
+          
       - name: Setup Helm
         uses: azure/setup-helm@v4.3.0
 
