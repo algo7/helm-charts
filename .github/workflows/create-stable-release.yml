@@ -38,12 +38,12 @@ jobs:
           echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
           echo "CHART_VERSION=$CHART_VERSION" >> $GITHUB_ENV
           echo "HELM_PACKAGE_PATH=${{ github.workspace }}/charts/$APP_NAME" >> $GITHUB_ENV
-          
+
       - name: Setup Helm
         uses: azure/setup-helm@v4.3.0
 
       - name: Package Helm Chart
-        run: helm package $HELM_PACKAGE_PATH/$APP_NAME --version $CHART_VERSION --app-version $APP_VERSION --destination $HELM_PACKAGE_PATH
+        run: helm package $HELM_PACKAGE_PATH --version $CHART_VERSION --app-version $APP_VERSION --destination $HELM_PACKAGE_PATH
 
       # Login to GitHub Container Registry
       - name: Registry Login
