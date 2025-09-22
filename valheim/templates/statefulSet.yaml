@@ -55,14 +55,29 @@ spec:
             - containerPort: 2458
               name: valheim-p3
               protocol: UDP
-          {{- with .Values.livenessProbe }}
-          livenessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.readinessProbe }}
+          # Healthchecks
           readinessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - grep -q "Game server connected" /home/steam/valheim/BepInEx/LogOutput.log
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 10
+
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - grep -q "Game server connected" /home/steam/valheim/BepInEx/LogOutput.log
+            initialDelaySeconds: 600
+            periodSeconds: 60
+            timeoutSeconds: 10
+            failureThreshold: 5
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

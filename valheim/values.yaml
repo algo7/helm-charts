@@ -1,74 +1,30 @@
-# Default values for valheim.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
-
-# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
+  # -- The repository to pull the image from.
   repository: ghcr.io/mbround18/valheim
-  # This sets the pull policy for images.
+  # -- The image pull policy. One of Always, IfNotPresent, or Never.
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
+  # -- Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
-# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+# -- This is for the secrets for pulling an image from a private repository. It's likely that you won't need to change this.
 imagePullSecrets: []
-# This is to override the chart name.
+
+# -- Overrides the name of the chart. So it becomes release-name-<nameOverride> instead of release-name-chart-name.
 nameOverride: ""
+
+# -- Overrides the full name of the chart. So it becomes <fullnameOverride>
 fullnameOverride: ""
 
 
-# This is for setting Kubernetes Annotations to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+# -- Add custom annotations to the pod.
 podAnnotations: {}
-# This is for setting Kubernetes Labels to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+
+# -- Add custom labels to the pod.
 podLabels: {}
 
 
-# -- Expose the service via gateway-api HTTPRoute
-# Requires Gateway API resources and suitable controller installed within the cluster
-# (see: https://gateway-api.sigs.k8s.io/guides/)
-httpRoute:
-  # HTTPRoute enabled.
-  enabled: false
-  # HTTPRoute annotations.
-  annotations: {}
-  # Which Gateways this Route is attached to.
-  parentRefs:
-  - name: gateway
-    sectionName: http
-    # namespace: default
-  # Hostnames matching HTTP header.
-  hostnames:
-  - chart-example.local
-  # List of rules and filters applied.
-  rules:
-  - matches:
-    - path:
-        type: PathPrefix
-        value: /headers
-  #   filters:
-  #   - type: RequestHeaderModifier
-  #     requestHeaderModifier:
-  #       set:
-  #       - name: My-Overwrite-Header
-  #         value: this-is-the-only-value
-  #       remove:
-  #       - User-Agent
-  # - matches:
-  #   - path:
-  #       type: PathPrefix
-  #       value: /echo
-  #     headers:
-  #     - name: version
-  #       value: v2
-
+# -- Resource requests and limits
 resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
   # limits:
   #   cpu: 100m
   #   memory: 128Mi
@@ -76,73 +32,63 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
-livenessProbe:
-  httpGet:
-    path: /
-    port: http
-readinessProbe:
-  httpGet:
-    path: /
-    port: http
 
 service:
+  # -- Kubernetes Service type. Supported options are ClusterIP, NodePort, and LoadBalancer. You will likely use either LoadBalancer or NodePort.
   type: LoadBalancer
+  # -- The port the service will be exposed on. This is independent of the container port which is will always be 2456, 2457, and 2458. This will be the port you connect to. There will be 2 additional ports opened for game traffic. It's the port here +1 and +2. So if you set this to 2456, the ports opened will be 2456, 2457, and 2458. It's templated in the chart to make this easier.
   port: 2456
 
 persistence:
-  enabled: true
-
-  # If you want to use an existing PersistentVolumeClaim, specify its name here.
-  # If this is set, the chart will not create a new PVC.
-  # Example:
-  # existingClaim: "my-pre-existing-valheim-pvc"
+  # -- Enable persistence using a PersistentVolumeClaim. If false, an emptyDir volume is used which means all data will be lost when the pod is removed or restarted.
+  enabled: false
+  # -- If you want to use an existing claim, specify the claim name here. If this is set, the other settings for persistence are ignored.
   existingClaim: ""
-
-  # Settings for dynamic volume provisioning.
-  # These are ignored if `existingClaim` is set.
-  # For more info: https://kubernetes.io/docs/concepts/storage/storage-classes/
+  # -- StorageClass for dynamically provisioned PersistentVolume. If persistence.existingClaim is set, these values are ignored.
   storageClassName: "standard"
+  # -- Access mode for the PersistentVolumeClaim. If persistence.existingClaim is set, these values are ignored.
   accessModes:
     - ReadWriteOnce
+  # -- Size of the PersistentVolume. If persistence.existingClaim is set, these values are ignored.
   size: 10Gi
 
+# -- The node selector for pod assignment
 nodeSelector: {}
 
+# -- Tolerations for pod assignment
 tolerations: []
 
+# -- Affinity for pod assignment
 affinity: {}
 
-# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:
-  # Specifies whether a service account should be created
-  create: false
-  # Automatically mount a ServiceAccount's API credentials?
+  # -- Specifies whether a service account should be created. It's a security best practice to create a dedicated service account for each application. If create is set to false, then the default service account will be used which is not recommended.
+  create: true
+  # -- Automatically mount a ServiceAccount token for the pod
   automount: true
-  # Annotations to add to the service account
+  # -- Annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
+  # -- The name of the service account to use. If not set and create is true, a name will be the fullname of the chart (release-name-chart-name).
   name: ""
 
 
 config:
-  # ConfigMap data
-  data:
-    TYPE: BepInEx
-    PORT: 2456
-    NAME: ''
-    WORLD: ''
-    PASSWORD: ''
-    TZ: ''
-    PUBLIC: 1
-    AUTO_UPDATE: 1
-    AUTO_UPDATE_SCHEDULE: '0 1 * * *'
-    AUTO_BACKUP: 1
-    AUTO_BACKUP_SCHEDULE: '*/15 * * * *'
-    AUTO_BACKUP_REMOVE_OLD: 0
-    AUTO_BACKUP_DAYS_TO_LIVE: 5
-    AUTO_BACKUP_ON_UPDATE: 1
-    AUTO_BACKUP_ON_SHUTDOWN: 1
-    AUTO_BACKUP_PAUSE_WITH_NO_PLAYERS: 1
-    MODS: https://mydomain.com/mods.json
+  # -- List of environment variables to set in the container. See https://github.com/mbround18/valheim-docker?tab=readme-ov-file#environment-variables for all available environment variables.
+  data: {}
+  #  TYPE: BepInEx
+  #  PORT: 2456
+  #  NAME: ''
+  #  WORLD: ''
+  #  PASSWORD: ''
+  #  TZ: ''
+  #  PUBLIC: 1
+  #  AUTO_UPDATE: 1
+  #  AUTO_UPDATE_SCHEDULE: '0 1 * * *'
+  #  AUTO_BACKUP: 1
+  #  AUTO_BACKUP_SCHEDULE: '*/15 * * * *'
+  #  AUTO_BACKUP_REMOVE_OLD: 0
+  #  AUTO_BACKUP_DAYS_TO_LIVE: 5
+  #  AUTO_BACKUP_ON_UPDATE: 1
+  #  AUTO_BACKUP_ON_SHUTDOWN: 1
+  #  AUTO_BACKUP_PAUSE_WITH_NO_PLAYERS: 1
+  #  MODS: https://gcdn.thunderstore.io/live/repository/packages/SOMEMOD.zip
