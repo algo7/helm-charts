@@ -42,10 +42,14 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@v4.3.0
 
+      - name: Test Helm Chart
+        run: | 
+          helm lint $HELM_PACKAGE_PATH
+          helm template test-release $HELM_PACKAGE_PATH
+
       - name: Package Helm Chart
         run: helm package $HELM_PACKAGE_PATH --version $CHART_VERSION --app-version $APP_VERSION --destination ${{ github.workspace }}
 
-      # Login to GitHub Container Registry
       - name: Registry Login
         uses: docker/login-action@v3.2.0
         with:
