@@ -55,7 +55,7 @@ jobs:
           logout: true
 
       - name: Publish Helm OCI Chart
-        run: helm push ${HELM_PACKAGE_PATH}.tgz oci://ghcr.io/${{ github.repository }}
+        run: helm push ${HELM_PACKAGE_PATH}-${CHART_VERSION}.tgz oci://ghcr.io/${{ github.repository }}
         shell: bash
         env:
           HELM_EXPERIMENTAL_OCI: 1
