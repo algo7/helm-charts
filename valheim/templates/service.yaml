@@ -7,9 +7,19 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
-      protocol: TCP
-      name: http
+    - name: valheim-p1
+      port: {{ .Values.service.port }}
+      targetPort: 2456
+      protocol: UDP
+
+    - name: valheim-p2
+      port: {{ add .Values.service.port 1 }}
+      targetPort: 2457
+      protocol: UDP
+
+    - name: valheim-p3
+      port: {{ add .Values.service.port 2 }}
+      targetPort: 2458
+      protocol: UDP
   selector:
     {{- include "valheim.selectorLabels" . | nindent 4 }}

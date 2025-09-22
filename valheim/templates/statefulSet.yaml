@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "valheim.fullname" . }}
+  labels:
+    {{- include "valheim.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "valheim.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "valheim.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "valheim.serviceAccountName" . }}
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            runAsUser: 111
+            runAsGroup: 1000
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "valheim.fullname" . }}
+          # Port mapping
+          ports:
+            - containerPort: 2456
+              name: valheim-p1
+              protocol: UDP
+            - containerPort: 2457
+              name: valheim-p2
+              protocol: UDP
+            - containerPort: 2458
+              name: valheim-p3
+              protocol: UDP
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.persistence.enabled }}
+          volumeMounts:
+            - name: valheim-data
+              mountPath: /home/steam/backups
+              # Subpath must be relative
+              subPath: valheim/backups
+            - name: valheim-data
+              mountPath: /home/steam/.config/unity3d/IronGate/Valheim
+              subPath: valheim/saves
+            - name: valheim-data
+              mountPath: /home/steam/valheim
+              subPath: valheim/server
+          {{- end }}
+      {{- if .Values.persistence.enabled }}
+      volumes:
+        {{- if .Values.persistence.existingClaim }}
+        - name: valheim-data
+          persistentVolumeClaim:
+            claimName: {{ .Values.existingVolume.persistentVolumeClaimName }}
+        {{- end }}
+      {{- if not .Values.persistence.existingClaim }}
+      volumeClaimTemplates:
+        - metadata:
+            name: valheim-data
+            labels:
+              {{- include "valheim.labels" . | nindent 14 }}
+          spec:
+            accessModes:
+              {{- toYaml .Values.persistence.accessModes | nindent 14 }}
+            {{- if .Values.persistence.storageClassName }}
+            storageClassName: {{ .Values.persistence.storageClassName | quote }}
+            {{- end }}
+            resources:
+              requests:
+                storage: {{ .Values.persistence.size }}
+      {{- end }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
