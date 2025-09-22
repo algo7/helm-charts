@@ -1,6 +1,6 @@
 apiVersion: v2
 name: valheim
-description: A Helm chart for Kubernetes
+description: A Helm chart for deploying Valheim Dedicated Server
 # has to at least support the gateway api
 kubeVersion: '>=1.30.0-0'
 type: application
