@@ -15,13 +15,11 @@ nameOverride: ""
 # -- Overrides the full name of the chart. So it becomes <fullnameOverride>
 fullnameOverride: ""
 
-
 # -- Add custom annotations to the pod.
 podAnnotations: {}
 
 # -- Add custom labels to the pod.
 podLabels: {}
-
 
 # -- Resource requests and limits
 resources: {}
@@ -31,7 +29,6 @@ resources: {}
   # requests:
   #   cpu: 100m
   #   memory: 128Mi
-
 
 service:
   # -- Kubernetes Service type. Supported options are ClusterIP, NodePort, and LoadBalancer. You will likely use either LoadBalancer or NodePort.
