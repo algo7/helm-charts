@@ -30,20 +30,20 @@ jobs:
           REF="${{ github.ref_name }}"
           
           # Use cut with '-' as the delimiter (-d) and select the field number (-f)
-          APP_NAME=$(echo "$REF" | cut -d'-' -f1)
+          CHART_NAME=$(echo "$REF" | cut -d'-' -f1)
           APP_VERSION=$(echo "$REF" | cut -d'-' -f2)
           CHART_VERSION=$(echo "$REF" | cut -d'-' -f3)
 
-          echo "APP_NAME=$APP_NAME" >> $GITHUB_ENV
+          echo "CHART_NAME=$CHART_NAME" >> $GITHUB_ENV
           echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
           echo "CHART_VERSION=$CHART_VERSION" >> $GITHUB_ENV
-          echo "HELM_PACKAGE_PATH=${{ github.workspace }}/charts/$APP_NAME" >> $GITHUB_ENV
+          echo "HELM_PACKAGE_PATH=${{ github.workspace }}/charts/$CHART_NAME" >> $GITHUB_ENV
 
       - name: Setup Helm
         uses: azure/setup-helm@v4.3.0
 
       - name: Package Helm Chart
-        run: helm package $HELM_PACKAGE_PATH --version $CHART_VERSION --app-version $APP_VERSION --destination $HELM_PACKAGE_PATH
+        run: helm package $HELM_PACKAGE_PATH --version $CHART_VERSION --app-version $APP_VERSION --destination ${{ github.workspace }}
 
       # Login to GitHub Container Registry
       - name: Registry Login
@@ -55,7 +55,7 @@ jobs:
           logout: true
 
       - name: Publish Helm OCI Chart
-        run: helm push ${HELM_PACKAGE_PATH}-${CHART_VERSION}.tgz oci://ghcr.io/${{ github.repository }}
+        run: helm push ${{ github.workspace }}/${{ CHART_NAME }}-${{ CHART_VERSION }}.tgz oci://ghcr.io/${{ github.repository }}
         shell: bash
         env:
           HELM_EXPERIMENTAL_OCI: 1
