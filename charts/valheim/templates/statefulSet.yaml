@@ -26,19 +26,13 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "valheim.serviceAccountName" . }}
-      securityContext:
-        fsGroup: 1000
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
-            runAsUser: 111
+            runAsUser: 111 # steam user
             runAsGroup: 1000
             runAsNonRoot: true
-            readOnlyRootFilesystem: true
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
+            allowPrivilegeEscalation: true # the entrypoint script uses sudo. so this has to be true.
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           envFrom:
