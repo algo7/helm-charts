@@ -1,0 +1,206 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "redis-sentinel.fullname" . }}
+  labels:
+    {{- include "redis-sentinel.redis.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "redis-sentinel.fullname" . }}-headless
+  replicas: {{ .Values.redis.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "redis-sentinel.redis.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.redis.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "redis-sentinel.redis.labels" . | nindent 8 }}
+        {{- with .Values.redis.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.redis.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "redis-sentinel.redis.serviceAccountName" . }}
+      {{- with .Values.redis.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: redis
+          {{- with .Values.redis.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.redisSecret.name }}
+                  key: {{ .Values.redisSecret.key }}
+          command: ['/bin/sh', '-c']
+          args:
+            - |
+              cp /tmp/redis.conf /etc/redis.conf
+              REDIS_CONFIG="/etc/redis.conf"
+              if [ $(hostname) = "redis-0" ]; then
+                echo "Starting Redis in master mode."
+                redis-server $REDIS_CONFIG --requirepass $REDIS_PASSWORD --masterauth $REDIS_PASSWORD
+              else
+                echo "Starting Redis in slave mode."
+                redis-server $REDIS_CONFIG --requirepass $REDIS_PASSWORD --masterauth $REDIS_PASSWORD --replicaof redis-0.{{ include "redis-sentinel.fullname" . }}-headless.{{ .Release.Namespace}}.svc.{{ .Values.redis.clusterDomain }} 6379
+              fi
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - $REDIS_PASSWORD
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - $REDIS_PASSWORD
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          ports:
+            - name: redis-port
+              containerPort: 6379
+              protocol: TCP
+          volumeMounts:
+            - name: redis-config
+              mountPath: /tmp
+              subPath: ''
+              readOnly: true
+            - name: redis-data
+              mountPath: /data
+              subPath: ''
+          {{- with .Values.redis.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+        - name: sentinel
+          {{- with .Values.redis.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: redis-password
+          command: ['/bin/sh', '-c']
+          args:
+            - |
+              cp /tmp/redis-sentinel.conf /etc/redis-sentinel.conf
+              REDIS_CONFIG="/etc/redis-sentinel.conf"
+              echo "Starting Redis Sentinel."
+              redis-server $REDIS_CONFIG --sentinel auth-pass primary $REDIS_PASSWORD --sentinel announce-ip $(hostname -f)
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - $REDIS_PASSWORD
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - $REDIS_PASSWORD
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          ports:
+            - containerPort: 27562
+              name: redis-sentinel-port
+              protocol: TCP
+          volumeMounts:
+            - name: redis-sentinel-config
+              mountPath: /tmp
+              subPath: ''
+    volumes:
+        - name: redis-config
+          configMap:
+            name: redis-config
+            items:
+              - key: redis.conf
+                path: redis.conf
+        - name: redis-sentinel-config
+          configMap:
+            name: redis-config
+            items:
+              - key: redis-sentinel.conf
+                path: redis-sentinel.conf
+
+      {{- if and .Values.redis.persistence.enabled .Values.redis.persistence.existingClaim }}
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: {{ .Values.redis.persistence.existingClaim }}
+      {{- end }}
+
+      {{- if not .Values.redis.persistence.enabled }}
+        - name: redis-data
+          emptyDir:
+            medium: Memory
+      {{- end }}
+
+    {{- if and .Values.redis.persistence.enabled (not .Values.redis.persistence.existingClaim) }}
+    volumeClaimTemplates:
+      - metadata:
+          name: redis-data
+          labels:
+            {{- include "redis-sentinel.redis.labels" . | nindent 14 }}
+        spec:
+          accessModes:
+            {{- toYaml .Values.redis.persistence.accessModes | nindent 14 }}
+          {{- if .Values.redis.persistence.storageClassName }}
+          storageClassName: {{ .Values.redis.persistence.storageClassName | quote }}
+          {{- end }}
+          resources:
+            requests:
+              storage: {{ .Values.redis.persistence.size }}
+    {{- end }}
+      {{- with .Values.redis.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.redis.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.redis.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

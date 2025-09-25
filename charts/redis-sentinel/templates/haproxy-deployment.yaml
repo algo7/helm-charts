@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "redis-sentinel.fullname" . }}-haproxy
+  labels:
+    app.kubernetes.io/component: haproxy
+    {{- include "redis-sentinel.haproxy.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.haproxy.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "redis-sentinel.haproxy.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.haproxy.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "redis-sentinel.haproxy.labels" . | nindent 8 }}
+        {{- with .Values.haproxy.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.haproxy.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "redis-sentinel.haproxy.serviceAccountName" . }}
+      {{- with .Values.haproxy.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: config-setup
+          image: busybox
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.redisSecret.name }}
+                  key: {{ .Values.redisSecret.key }}
+          command: ['/bin/sh', '-c']
+          args:
+            - |
+              cp /tmp/haproxy.cfg /haproxy-config-modified/haproxy.cfg
+              sed -i "s/XXXXXXXX/$REDIS_PASSWORD/g" /haproxy-config-modified/haproxy.cfg
+          volumeMounts:
+            - name: redis-haproxy-config
+              mountPath: /tmp
+              subPath: ''
+            - name: haproxy-conf
+              mountPath: /haproxy-config-modified
+      containers:
+        - name: {{ .Chart.Name }}-haproxy
+          {{- with .Values.haproxy.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.haproxy.image.repository }}:{{ .Values.haproxy.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.haproxy.image.pullPolicy }}
+          ports:
+            - name: redis-endpoint
+              containerPort: 6379
+              protocol: TCP
+            - name: haproxy-stats
+              containerPort: 8080
+              protocol: TCP
+          {{- with .Values.haproxy.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.haproxy.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.haproxy.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: haproxy-conf
+              mountPath: /usr/local/etc/haproxy
+      volumes:
+        - name: redis-haproxy-config
+          configMap:
+            name: redis-haproxy-config
+            items:
+              - key: haproxy.cfg
+                path: haproxy.cfg
+        - name: haproxy-conf
+          emptyDir: {}
+          
+      {{- with .Values.haproxy.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.haproxy.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.haproxy.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

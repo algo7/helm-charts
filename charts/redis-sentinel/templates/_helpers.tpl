@@ -31,11 +31,11 @@ Create chart name and version as used by the chart label.
 {{- end }}
 
 {{/*
-Common labels
+Common labels for Redis components
 */}}
-{{- define "redis-sentinel.labels" -}}
+{{- define "redis-sentinel.redis.labels" -}}
 helm.sh/chart: {{ include "redis-sentinel.chart" . }}
-{{ include "redis-sentinel.selectorLabels" . }}
+{{ include "redis-sentinel.redis.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -43,20 +43,57 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
-Selector labels
+Common labels for HAProxy components
 */}}
-{{- define "redis-sentinel.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "redis-sentinel.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
+{{- define "redis-sentinel.haproxy.labels" -}}
+helm.sh/chart: {{ include "redis-sentinel.chart" . }}
+{{ include "redis-sentinel.haproxy.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
+
 {{/*
-Create the name of the service account to use
+Selector labels for Redis components
 */}}
-{{- define "redis-sentinel.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "redis-sentinel.fullname" .) .Values.serviceAccount.name }}
+{{- define "redis-sentinel.redis.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "redis-sentinel.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: redis-sentinel
+{{- end }}
+
+
+{{/*
+Selector labels for HAProxy components
+*/}}
+{{- define "redis-sentinel.haproxy.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "redis-sentinel.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: haproxy
+{{- end }}
+
+
+{{/*
+Create the name of the redis service account to use
+*/}}
+{{- define "redis-sentinel.redis.serviceAccountName" -}}
+{{- if .Values.redis.serviceAccount.create }}
+{{- .Values.redis.serviceAccount.name | default (printf "%s-redis" (include "redis-sentinel.fullname" .)) | quote }}
 {{- else }}
-{{- default "default" .Values.serviceAccount.name }}
+{{- default "default" .Values.redis.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+
+{{/*
+Create the name of the haproxy service account to use
+*/}}
+{{- define "redis-sentinel.haproxy.serviceAccountName" -}}
+{{- if .Values.haproxy.serviceAccount.create }}
+{{- .Values.haproxy.serviceAccount.name | default (printf "%s-haproxy" (include "redis-sentinel.fullname" .)) | quote }}
+{{- else }}
+{{- default "default" .Values.haproxy.serviceAccount.name }}
 {{- end }}
 {{- end }}
