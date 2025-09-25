@@ -3,7 +3,6 @@ kind: Deployment
 metadata:
   name: {{ include "redis-sentinel.fullname" . }}-haproxy
   labels:
-    app.kubernetes.io/component: haproxy
     {{- include "redis-sentinel.haproxy.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.haproxy.replicaCount }}
@@ -52,7 +51,7 @@ spec:
             - name: haproxy-conf
               mountPath: /haproxy-config-modified
       containers:
-        - name: {{ .Chart.Name }}-haproxy
+        - name: haproxy
           {{- with .Values.haproxy.securityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
