@@ -62,7 +62,7 @@ serviceAccount:
   # -- Specifies whether a service account should be created. It's a security best practice to create a dedicated service account for each application. If create is set to false, then the default service account will be used which is not recommended.
   create: true
   # -- Automatically mount a ServiceAccount token for the pod
-  automount: true
+  automount: false
   # -- Annotations to add to the service account
   annotations: {}
   # -- The name of the service account to use. If not set and create is true, a name will be the fullname of the chart (release-name-chart-name).
