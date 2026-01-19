@@ -5,6 +5,7 @@ metadata:
   labels:
     {{- include "valheim.labels" . | nindent 4 }}
 spec:
+  serviceName: {{ include "valheim.fullname" . }}
   replicas: 1
   selector:
     matchLabels:
@@ -29,16 +30,18 @@ spec:
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
-            runAsUser: 111 # steam user
+            {{- /* steam user */}}
+            runAsUser: 111
             runAsGroup: 1000
             runAsNonRoot: true
-            allowPrivilegeEscalation: true # the entrypoint script uses sudo. so this has to be true.
+            {{- /* the entrypoint script uses sudo. so this has to be true */}}
+            allowPrivilegeEscalation: true 
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           envFrom:
             - configMapRef:
                 name: {{ include "valheim.fullname" . }}
-          # Port mapping
+          {{- /* Port mapping */}}
           ports:
             - containerPort: 2456
               name: valheim-p1
@@ -49,7 +52,7 @@ spec:
             - containerPort: 2458
               name: valheim-p3
               protocol: UDP
-          # Healthchecks
+          {{- /* Healthchecks */}}
           readinessProbe:
             exec:
               command:
@@ -80,7 +83,7 @@ spec:
           volumeMounts:
             - name: valheim-data
               mountPath: /home/steam/backups
-              # Subpath must be relative
+              {{- /* Subpath must be relative */}}
               subPath: valheim/backups
             - name: valheim-data
               mountPath: /home/steam/.config/unity3d/IronGate/Valheim
