@@ -64,7 +64,6 @@ spec:
             timeoutSeconds: 10
             successThreshold: 1
             failureThreshold: 10
-
           livenessProbe:
             exec:
               command:
@@ -104,27 +103,25 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-    {{- if .Values.persistence.enabled }}
-    volumes:
-      {{- if .Values.persistence.existingClaim }}
-      - name: valheim-data
-        persistentVolumeClaim:
-          claimName: {{ .Values.existingVolume.persistentVolumeClaimName }}
-      {{- end }}
-    {{- if not .Values.persistence.existingClaim }}
-    volumeClaimTemplates:
-      - metadata:
-          name: valheim-data
-          labels:
-            {{- include "valheim.labels" . | nindent 14 }}
-        spec:
-          accessModes:
-            {{- toYaml .Values.persistence.accessModes | nindent 14 }}
-          {{- if .Values.persistence.storageClassName }}
-          storageClassName: {{ .Values.persistence.storageClassName | quote }}
-          {{- end }}
-          resources:
-            requests:
-              storage: {{ .Values.persistence.size }}
-    {{- end }}
-    {{- end }}
+  {{- if and .Values.persistence.enabled .Values.persistence.existingClaim }}
+  volumes:
+    - name: valheim-data
+      persistentVolumeClaim:
+        claimName: {{ .Values.existingVolume.persistentVolumeClaimName }}
+  {{- end }}
+  {{- if and .Values.persistence.enabled (not .Values.persistence.existingClaim) }}
+  volumeClaimTemplates:
+    - metadata:
+        name: valheim-data
+        labels:
+          {{- include "valheim.labels" . | nindent 14 }}
+      spec:
+        accessModes:
+          {{- toYaml .Values.persistence.accessModes | nindent 14 }}
+        {{- if .Values.persistence.storageClassName }}
+        storageClassName: {{ .Values.persistence.storageClassName | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- end }}
