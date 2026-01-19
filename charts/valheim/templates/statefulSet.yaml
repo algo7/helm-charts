@@ -107,7 +107,7 @@ spec:
   volumes:
     - name: valheim-data
       persistentVolumeClaim:
-        claimName: {{ .Values.existingVolume.persistentVolumeClaimName }}
+        claimName: {{ .Values.persistence.existingClaim }}
   {{- end }}
   {{- if and .Values.persistence.enabled (not .Values.persistence.existingClaim) }}
   volumeClaimTemplates:
