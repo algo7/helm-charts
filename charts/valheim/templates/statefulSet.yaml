@@ -35,7 +35,7 @@ spec:
             runAsGroup: 1000
             runAsNonRoot: true
             {{- /* the entrypoint script uses sudo. so this has to be true */}}
-            allowPrivilegeEscalation: true 
+            allowPrivilegeEscalation: true
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           envFrom:
@@ -92,30 +92,6 @@ spec:
               mountPath: /home/steam/valheim
               subPath: valheim/server
           {{- end }}
-      {{- if .Values.persistence.enabled }}
-      volumes:
-        {{- if .Values.persistence.existingClaim }}
-        - name: valheim-data
-          persistentVolumeClaim:
-            claimName: {{ .Values.existingVolume.persistentVolumeClaimName }}
-        {{- end }}
-      {{- if not .Values.persistence.existingClaim }}
-      volumeClaimTemplates:
-        - metadata:
-            name: valheim-data
-            labels:
-              {{- include "valheim.labels" . | nindent 14 }}
-          spec:
-            accessModes:
-              {{- toYaml .Values.persistence.accessModes | nindent 14 }}
-            {{- if .Values.persistence.storageClassName }}
-            storageClassName: {{ .Values.persistence.storageClassName | quote }}
-            {{- end }}
-            resources:
-              requests:
-                storage: {{ .Values.persistence.size }}
-      {{- end }}
-      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -128,3 +104,27 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+    {{- if .Values.persistence.enabled }}
+    volumes:
+      {{- if .Values.persistence.existingClaim }}
+      - name: valheim-data
+        persistentVolumeClaim:
+          claimName: {{ .Values.existingVolume.persistentVolumeClaimName }}
+      {{- end }}
+    {{- if not .Values.persistence.existingClaim }}
+    volumeClaimTemplates:
+      - metadata:
+          name: valheim-data
+          labels:
+            {{- include "valheim.labels" . | nindent 14 }}
+        spec:
+          accessModes:
+            {{- toYaml .Values.persistence.accessModes | nindent 14 }}
+          {{- if .Values.persistence.storageClassName }}
+          storageClassName: {{ .Values.persistence.storageClassName | quote }}
+          {{- end }}
+          resources:
+            requests:
+              storage: {{ .Values.persistence.size }}
+    {{- end }}
+    {{- end }}
