@@ -94,7 +94,7 @@ spec:
               subPath: valheim/server
 
             - name: valheim-data
-              mountPath: /home/steam/.steam
+              mountPath: /home/steam/Steam
               subPath: valheim/steamcmd-cache
           {{- end }}
       {{- with .Values.nodeSelector }}
