@@ -5,8 +5,8 @@ description: A Helm chart for deploying Valheim Dedicated Server
 kubeVersion: '>=1.30.0-0'
 type: application
 
-version: 0.1.0
-appVersion: '3.5.0'
+version: 0.1.5
+appVersion: '3.6.0'
 maintainers:
   - name: algo7
     url: https://github.com/algo7
