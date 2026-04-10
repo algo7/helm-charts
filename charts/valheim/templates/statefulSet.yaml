@@ -84,12 +84,18 @@ spec:
               mountPath: /home/steam/backups
               {{- /* Subpath must be relative */}}
               subPath: valheim/backups
+
             - name: valheim-data
               mountPath: /home/steam/.config/unity3d/IronGate/Valheim
               subPath: valheim/saves
+
             - name: valheim-data
               mountPath: /home/steam/valheim
               subPath: valheim/server
+
+            - name: valheim-data
+              mountPath: /home/steam/.steam
+              subPath: valheim/steamcmd-cache
           {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
