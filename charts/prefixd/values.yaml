@@ -1,0 +1,142 @@
+image:
+  # -- The repository to pull the image from.
+  repository: ghcr.io/algo7/prefixd
+  # -- The image pull policy. One of Always, IfNotPresent, or Never.
+  pullPolicy: IfNotPresent
+  # -- Overrides the image tag whose default is the chart appVersion.
+  tag: ''
+
+# -- Contents of /etc/prefixd/feeds.txt. Free-form: CIDRs, comments, blank lines.
+config:
+  feeds: ''
+
+feedToken:
+  # -- Name of an existing secret to use. If set, this takes precedence over ExternalSecret.
+  existingSecret: ""
+
+  externalSecret:
+    # -- If true, an ExternalSecret resource will be created.
+    # This requires the ExternalSecret Operator to be installed in the cluster.
+    create: false
+    # -- SecretStoreRef for the ExternalSecret
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    # -- Remote reference to the secret in the external store
+    remoteRef:
+      key: prefixd/feed-token
+      property: token
+
+# -- The replica count
+replicaCount: 1
+
+# -- This is for the secrets for pulling an image from a private repository. It's likely that you won't need to change this.
+imagePullSecrets: []
+
+# -- Overrides the name of the chart. So it becomes release-name-<nameOverride> instead of release-name-chart-name.
+nameOverride: ''
+
+# -- Overrides the full name of the chart. So it becomes <fullnameOverride>
+fullnameOverride: ''
+
+# -- Add custom annotations to the pod.
+podAnnotations: {}
+
+# -- Add custom labels to the pod.
+podLabels: {}
+
+# -- Resource requests and limits
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
+serviceAccount:
+  # Specifies whether a service account should be created.
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: false
+  # Annotations to add to the service account.
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template.
+  name: ''
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+  type: ClusterIP
+  # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
+  port: 80
+
+# -- Expose the service via gateway-api HTTPRoute
+# Requires Gateway API resources and suitable controller installed within the cluster
+# (see: https://gateway-api.sigs.k8s.io/guides/)
+httpRoute:
+  # HTTPRoute enabled.
+  enabled: false
+  # HTTPRoute annotations.
+  annotations: {}
+  # Which Gateways this Route is attached to.
+  parentRefs:
+    - name: gateway
+      sectionName: http
+      # namespace: default
+  # Hostnames matching HTTP header.
+  hostnames:
+    - chart-example.local
+  # List of rules and filters applied.
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /headers
+  #   filters:
+  #   - type: RequestHeaderModifier
+  #     requestHeaderModifier:
+  #       set:
+  #       - name: My-Overwrite-Header
+  #         value: this-is-the-only-value
+  #       remove:
+  #       - User-Agent
+  # - matches:
+  #   - path:
+  #       type: PathPrefix
+  #       value: /echo
+  #     headers:
+  #     - name: version
+  #       value: v2
+
+# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+
+# -- The node selector for pod assignment
+nodeSelector: {}
+
+# -- Tolerations for pod assignment
+tolerations: []
+
+# -- Affinity for pod assignment
+affinity: {}
